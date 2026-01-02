@@ -74,7 +74,10 @@
     "searchStores": "Search stores...",
     "priceRange": "from €{min} to €{max}",
     "storeCount": "{count} stores",
-    "cheapestAt": "Cheapest at {store}"
+    "cheapestAt": "Cheapest at {store}",
+    "topSavings": "Top savings",
+    "pricesCount": "prices",
+    "storesHint": "Scan receipts to add new stores"
   },
   "compare": {
     "title": "Smart Cart",

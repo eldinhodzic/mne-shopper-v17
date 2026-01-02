@@ -74,7 +74,10 @@
     "searchStores": "Pretraži prodavnice...",
     "priceRange": "od {min}€ do {max}€",
     "storeCount": "{count} prodavnica",
-    "cheapestAt": "Najjeftinije u {store}"
+    "cheapestAt": "Najjeftinije u {store}",
+    "topSavings": "Najveće uštede",
+    "pricesCount": "cijena",
+    "storesHint": "Skenirajte račune da dodate nove prodavnice"
   },
   "compare": {
     "title": "Pametna korpa",

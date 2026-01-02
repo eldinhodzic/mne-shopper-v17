@@ -74,7 +74,10 @@
     "searchStores": "Geschäfte suchen...",
     "priceRange": "von {min}€ bis {max}€",
     "storeCount": "{count} Geschäfte",
-    "cheapestAt": "Am günstigsten bei {store}"
+    "cheapestAt": "Am günstigsten bei {store}",
+    "topSavings": "Beste Ersparnisse",
+    "pricesCount": "Preise",
+    "storesHint": "Scannen Sie Belege, um neue Geschäfte hinzuzufügen"
   },
   "compare": {
     "title": "Smarter Warenkorb",

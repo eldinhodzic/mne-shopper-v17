@@ -74,7 +74,10 @@
     "searchStores": "Искать магазины...",
     "priceRange": "от {min}€ до {max}€",
     "storeCount": "{count} магазинов",
-    "cheapestAt": "Дешевле всего в {store}"
+    "cheapestAt": "Дешевле всего в {store}",
+    "topSavings": "Лучшие скидки",
+    "pricesCount": "цен",
+    "storesHint": "Сканируйте чеки, чтобы добавить новые магазины"
   },
   "compare": {
     "title": "Умная корзина",
