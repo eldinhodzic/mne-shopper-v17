@@ -106,10 +106,10 @@ export default function CommunityView({ onProductClick, onClose }) {
       </div>
 
       {/* View Toggle */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-3">
         <button
           onClick={() => setView('products')}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
             view === 'products'
               ? 'bg-cyan-500 text-white'
               : 'bg-dark-800 text-dark-400 hover:text-white'
@@ -119,7 +119,7 @@ export default function CommunityView({ onProductClick, onClose }) {
         </button>
         <button
           onClick={() => setView('stores')}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
             view === 'stores'
               ? 'bg-cyan-500 text-white'
               : 'bg-dark-800 text-dark-400 hover:text-white'
@@ -130,14 +130,14 @@ export default function CommunityView({ onProductClick, onClose }) {
       </div>
 
       {/* Search */}
-      <div className="bg-dark-800 rounded-xl p-3 flex items-center gap-3 mb-4 border border-white/5">
-        <Icons.Search className="text-dark-400" />
+      <div className="bg-dark-800 rounded-xl px-3 py-2.5 flex items-center gap-2 mb-4 border border-white/5 focus-within:border-cyan-500/30 transition-colors">
+        <Icons.Search className="w-4 h-4 text-dark-500" />
         <input
           type="text"
           placeholder={view === 'products' ? t('community.searchProducts') : t('community.searchStores')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-transparent border-none outline-none text-white placeholder-dark-500 text-[15px]"
+          className="flex-1 bg-transparent border-none outline-none text-white placeholder-dark-500 text-sm"
         />
         {searchQuery && (
           <button
@@ -176,8 +176,8 @@ function ProductsList({ products, onProductClick, t }) {
   if (products.length === 0) {
     return (
       <div className="text-center py-8 text-dark-400">
-        <Icons.Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p>{t('compare.noData')}</p>
+        <Icons.Search className="w-6 h-6 mx-auto mb-2 opacity-50" />
+        <p className="text-sm">{t('compare.noData')}</p>
       </div>
     )
   }
@@ -188,12 +188,12 @@ function ProductsList({ products, onProductClick, t }) {
         <div
           key={product.code}
           onClick={() => onProductClick(product)}
-          className="card-interactive bg-dark-800 rounded-xl p-4 cursor-pointer border border-white/5 hover:border-cyan-500/30"
+          className="bg-dark-800 rounded-xl p-3.5 cursor-pointer border border-white/5 hover:border-cyan-500/30 hover:bg-dark-750 active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0 mr-3">
-              <p className="text-[15px] font-medium truncate">{product.name}</p>
-              <p className="text-xs text-dark-400 mt-1">
+              <p className="text-sm font-medium truncate">{product.name}</p>
+              <p className="text-xs text-dark-500 mt-0.5">
                 {t('community.storeCount', { count: product.storeCount })}
               </p>
             </div>
@@ -201,21 +201,19 @@ function ProductsList({ products, onProductClick, t }) {
             <div className="text-right flex-shrink-0">
               {product.minPrice !== product.maxPrice ? (
                 <>
-                  <p className="text-sm text-cyan-400 font-semibold">
+                  <p className="text-sm text-cyan-400 font-bold">
                     €{product.minPrice.toFixed(2)} - €{product.maxPrice.toFixed(2)}
                   </p>
-                  <p className="text-xs text-green-400 mt-0.5">
+                  <p className="text-[11px] text-green-400 mt-0.5 truncate max-w-[120px]">
                     {t('community.cheapestAt', { store: product.cheapestStore })}
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-cyan-400 font-semibold">
+                <p className="text-sm text-cyan-400 font-bold">
                   €{product.minPrice.toFixed(2)}
                 </p>
               )}
             </div>
-            
-            <Icons.ChevronRight className="text-dark-600 ml-2" />
           </div>
         </div>
       ))}
@@ -227,8 +225,8 @@ function StoresList({ stores, selectedStore, onStoreSelect, t }) {
   if (stores.length === 0) {
     return (
       <div className="text-center py-8 text-dark-400">
-        <Icons.Store className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p>{t('compare.noData')}</p>
+        <Icons.Store className="w-6 h-6 mx-auto mb-2 opacity-50" />
+        <p className="text-sm">{t('compare.noData')}</p>
       </div>
     )
   }
@@ -239,27 +237,23 @@ function StoresList({ stores, selectedStore, onStoreSelect, t }) {
         <div
           key={store.id}
           onClick={() => onStoreSelect(store.id === selectedStore ? null : store.id)}
-          className={`bg-dark-800 rounded-xl p-4 cursor-pointer border transition-all ${
+          className={`bg-dark-800 rounded-xl p-3.5 cursor-pointer border transition-all duration-200 active:scale-[0.98] ${
             selectedStore === store.id 
               ? 'border-cyan-500/50 bg-cyan-500/5' 
-              : 'border-white/5 hover:border-cyan-500/30'
+              : 'border-white/5 hover:border-cyan-500/30 hover:bg-dark-750'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
-              <Icons.Store />
+            <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 flex-shrink-0">
+              <Icons.Store className="w-4 h-4" />
             </div>
             
-            <div className="flex-1">
-              <p className="text-[15px] font-medium">{store.name}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{store.name}</p>
               {store.city && (
-                <p className="text-xs text-dark-400 mt-0.5">{store.city}</p>
+                <p className="text-xs text-dark-500 mt-0.5">{store.city}</p>
               )}
             </div>
-            
-            <Icons.ChevronRight className={`text-dark-600 transition-transform ${
-              selectedStore === store.id ? 'rotate-90' : ''
-            }`} />
           </div>
         </div>
       ))}
