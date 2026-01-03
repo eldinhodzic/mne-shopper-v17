@@ -50,6 +50,8 @@
     "avgReceipt": "Сред. чек",
     "spending": "Расходы",
     "totalSpent": "Всего потрачено",
+    "categorySpending": "Расходы по категориям",
+    "otherCategory": "Другое",
     "less": "меньше",
     "more": "больше",
     "yourInflation": "Ваша инфляция",

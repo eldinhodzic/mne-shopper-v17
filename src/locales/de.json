@@ -50,6 +50,8 @@
     "avgReceipt": "Durchschn. Beleg",
     "spending": "Ausgaben",
     "totalSpent": "Gesamt ausgegeben",
+    "categorySpending": "Ausgaben nach Kategorie",
+    "otherCategory": "Sonstiges",
     "less": "weniger",
     "more": "mehr",
     "yourInflation": "Ihre Inflation",

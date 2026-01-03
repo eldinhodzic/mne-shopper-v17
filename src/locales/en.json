@@ -50,6 +50,8 @@
     "avgReceipt": "Avg. receipt",
     "spending": "Spending",
     "totalSpent": "Total spent",
+    "categorySpending": "Spending by category",
+    "otherCategory": "Other",
     "less": "less",
     "more": "more",
     "yourInflation": "Your inflation",

@@ -50,6 +50,8 @@
     "avgReceipt": "Prosj. račun",
     "spending": "Potrošnja",
     "totalSpent": "Ukupno potrošeno",
+    "categorySpending": "Potrošnja po kategoriji",
+    "otherCategory": "Ostalo",
     "less": "manje",
     "more": "više",
     "yourInflation": "Vaša inflacija",

@@ -78,6 +78,77 @@ export default function HomeView({
     }
   }, [receipts])
 
+  // Category definitions for spending breakdown
+  const CATEGORIES = [
+    { id: 'dairy', icon: '🥛', keywords: ['mlijeko', 'milk', 'sir', 'cheese', 'jogurt', 'yogurt', 'maslac', 'butter', 'pavlaka', 'cream', 'kajmak'] },
+    { id: 'meat', icon: '🥩', keywords: ['meso', 'meat', 'piletina', 'chicken', 'junetina', 'beef', 'svinjetina', 'pork', 'riba', 'fish', 'kobasica', 'sausage', 'šunka', 'salama'] },
+    { id: 'bakery', icon: '🍞', keywords: ['hljeb', 'bread', 'pecivo', 'pastry', 'kifla', 'croissant', 'burek', 'pita', 'pogača'] },
+    { id: 'fruits', icon: '🥬', keywords: ['voće', 'fruit', 'povrće', 'vegetable', 'jabuka', 'apple', 'banana', 'paradajz', 'tomato', 'krompir', 'potato', 'luk', 'onion', 'paprika', 'salata'] },
+    { id: 'drinks', icon: '🥤', keywords: ['voda', 'water', 'sok', 'juice', 'pivo', 'beer', 'vino', 'wine', 'kafa', 'coffee', 'čaj', 'tea', 'cola', 'fanta', 'sprite', 'gaziran'] },
+    { id: 'snacks', icon: '🍪', keywords: ['čips', 'chips', 'čokolada', 'chocolate', 'keks', 'biscuit', 'slatkiši', 'candy', 'grickalice', 'snack', 'bombon', 'krekeri'] },
+    { id: 'hygiene', icon: '🧴', keywords: ['sapun', 'soap', 'šampon', 'shampoo', 'pasta', 'toothpaste', 'toalet', 'toilet', 'pelene', 'diaper', 'dezodorans', 'krema'] },
+    { id: 'household', icon: '🧹', keywords: ['deterdžent', 'detergent', 'sredstvo', 'cleaner', 'smeće', 'garbage', 'folija', 'foil', 'sunđer', 'krpa'] }
+  ]
+
+  // Calculate spending by category from local receipts
+  const categorySpending = useMemo(() => {
+    if (!receipts || receipts.length === 0) return null
+
+    const categoryTotals = {}
+    let totalSpent = 0
+    let uncategorized = 0
+
+    receipts.forEach(r => {
+      r.items?.forEach(item => {
+        const itemName = (item.name || '').toLowerCase()
+        const itemTotal = (item.price || 0) * (item.quantity || 1)
+        totalSpent += itemTotal
+
+        // Find matching category
+        let matched = false
+        for (const cat of CATEGORIES) {
+          if (cat.keywords.some(keyword => itemName.includes(keyword.toLowerCase()))) {
+            categoryTotals[cat.id] = (categoryTotals[cat.id] || 0) + itemTotal
+            matched = true
+            break
+          }
+        }
+        
+        if (!matched) {
+          uncategorized += itemTotal
+        }
+      })
+    })
+
+    if (totalSpent === 0) return null
+
+    // Convert to array with percentages
+    const categories = CATEGORIES
+      .map(cat => ({
+        ...cat,
+        amount: categoryTotals[cat.id] || 0,
+        percent: ((categoryTotals[cat.id] || 0) / totalSpent) * 100
+      }))
+      .filter(cat => cat.amount > 0)
+      .sort((a, b) => b.amount - a.amount)
+
+    // Add "Other" category if there's uncategorized spending
+    if (uncategorized > 0) {
+      categories.push({
+        id: 'other',
+        icon: '📦',
+        amount: uncategorized,
+        percent: (uncategorized / totalSpent) * 100
+      })
+    }
+
+    return {
+      categories: categories.slice(0, 5), // Top 5 categories
+      total: totalSpent,
+      hasData: categories.length > 0
+    }
+  }, [receipts])
+
   // Calculate personal inflation from local price history
   const personalInflation = useMemo(() => {
     if (!receipts || receipts.length < 2) return null
@@ -393,6 +464,47 @@ export default function HomeView({
                   {t('home.thisMonth')}: <span className="text-white font-medium">€{spendingStats.thisMonth.toFixed(0)}</span>
                 </span>
               )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Category Spending Breakdown - P2 Feature */}
+      {categorySpending?.hasData && (
+        <section className="animate-slide-up" style={{ animationDelay: '25ms' }}>
+          <div className="bg-dark-800 rounded-2xl p-4 border border-white/5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">🛒</span>
+              <h2 className="text-sm font-semibold">{t('home.categorySpending')}</h2>
+            </div>
+            
+            <div className="space-y-2.5">
+              {categorySpending.categories.map((cat, index) => (
+                <div key={cat.id} className="flex items-center gap-3">
+                  <span className="text-lg w-6 text-center">{cat.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-dark-300 truncate">
+                        {cat.id === 'other' ? t('home.otherCategory') : t(`category.${cat.id}`)}
+                      </span>
+                      <span className="text-xs font-medium text-white">€{cat.amount.toFixed(2)}</span>
+                    </div>
+                    <div className="h-2 bg-dark-900 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          index === 0 ? 'bg-gradient-to-r from-cyan-500 to-cyan-400' :
+                          index === 1 ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
+                          index === 2 ? 'bg-gradient-to-r from-purple-500 to-purple-400' :
+                          index === 3 ? 'bg-gradient-to-r from-pink-500 to-pink-400' :
+                          'bg-gradient-to-r from-gray-500 to-gray-400'
+                        }`}
+                        style={{ width: `${Math.max(cat.percent, 2)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="text-xs text-dark-400 w-10 text-right">{cat.percent.toFixed(0)}%</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
