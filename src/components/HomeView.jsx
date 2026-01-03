@@ -39,10 +39,12 @@ export default function HomeView({
 
     let thisWeek = 0, lastWeek = 0, thisMonth = 0, lastMonth = 0
     let thisWeekCount = 0, thisMonthCount = 0
+    let totalSpent = 0
 
     receipts.forEach(r => {
       const date = new Date(r.date)
       const total = r.total || 0
+      totalSpent += total
 
       if (date >= startOfThisWeek) {
         thisWeek += total
@@ -60,15 +62,19 @@ export default function HomeView({
     })
 
     const weekChange = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0
-    const avgReceipt = thisMonthCount > 0 ? thisMonth / thisMonthCount : 0
+    const avgReceipt = receipts.length > 0 ? totalSpent / receipts.length : 0
 
     return {
       thisWeek,
       lastWeek,
       thisMonth,
+      lastMonth,
+      totalSpent,
       weekChange,
       avgReceipt,
-      hasData: thisWeek > 0 || lastWeek > 0
+      receiptCount: receipts.length,
+      // Show widget if we have ANY spending data
+      hasData: totalSpent > 0
     }
   }, [receipts])
 
@@ -331,42 +337,62 @@ export default function HomeView({
               <h2 className="text-sm font-semibold">{t('home.spending')}</h2>
             </div>
             
-            <div className="grid grid-cols-3 gap-3">
-              {/* This Week */}
-              <div className="bg-dark-900/50 rounded-xl p-3 text-center">
-                <p className="text-lg font-bold text-cyan-400">€{spendingStats.thisWeek.toFixed(0)}</p>
-                <p className="text-[10px] text-dark-400 mt-0.5">{t('home.thisWeek')}</p>
-              </div>
-              
-              {/* Last Week */}
-              <div className="bg-dark-900/50 rounded-xl p-3 text-center">
-                <p className="text-lg font-bold text-dark-300">€{spendingStats.lastWeek.toFixed(0)}</p>
-                <p className="text-[10px] text-dark-400 mt-0.5">{t('home.lastWeek')}</p>
-              </div>
-              
-              {/* Change */}
-              <div className={`rounded-xl p-3 text-center ${
-                spendingStats.weekChange <= 0 
-                  ? 'bg-green-500/10 border border-green-500/20' 
-                  : 'bg-red-500/10 border border-red-500/20'
-              }`}>
-                <p className={`text-lg font-bold ${
-                  spendingStats.weekChange <= 0 ? 'text-green-400' : 'text-red-400'
+            {/* Show week comparison if we have recent data */}
+            {(spendingStats.thisWeek > 0 || spendingStats.lastWeek > 0) ? (
+              <div className="grid grid-cols-3 gap-3">
+                {/* This Week */}
+                <div className="bg-dark-900/50 rounded-xl p-3 text-center">
+                  <p className="text-lg font-bold text-cyan-400">€{spendingStats.thisWeek.toFixed(0)}</p>
+                  <p className="text-[10px] text-dark-400 mt-0.5">{t('home.thisWeek')}</p>
+                </div>
+                
+                {/* Last Week */}
+                <div className="bg-dark-900/50 rounded-xl p-3 text-center">
+                  <p className="text-lg font-bold text-dark-300">€{spendingStats.lastWeek.toFixed(0)}</p>
+                  <p className="text-[10px] text-dark-400 mt-0.5">{t('home.lastWeek')}</p>
+                </div>
+                
+                {/* Change */}
+                <div className={`rounded-xl p-3 text-center ${
+                  spendingStats.weekChange <= 0 
+                    ? 'bg-green-500/10 border border-green-500/20' 
+                    : 'bg-red-500/10 border border-red-500/20'
                 }`}>
-                  {spendingStats.weekChange <= 0 ? '▼' : '▲'} {Math.abs(spendingStats.weekChange).toFixed(0)}%
-                </p>
-                <p className="text-[10px] text-dark-400 mt-0.5">{spendingStats.weekChange <= 0 ? t('home.less') : t('home.more')}</p>
+                  <p className={`text-lg font-bold ${
+                    spendingStats.weekChange <= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {spendingStats.weekChange <= 0 ? '▼' : '▲'} {Math.abs(spendingStats.weekChange).toFixed(0)}%
+                  </p>
+                  <p className="text-[10px] text-dark-400 mt-0.5">{spendingStats.weekChange <= 0 ? t('home.less') : t('home.more')}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Show total stats if no recent week data */
+              <div className="grid grid-cols-2 gap-3">
+                {/* Total Spent */}
+                <div className="bg-dark-900/50 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-cyan-400">€{spendingStats.totalSpent.toFixed(2)}</p>
+                  <p className="text-[10px] text-dark-400 mt-0.5">{t('home.totalSpent')}</p>
+                </div>
+                
+                {/* Receipt Count */}
+                <div className="bg-dark-900/50 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-dark-300">{spendingStats.receiptCount}</p>
+                  <p className="text-[10px] text-dark-400 mt-0.5">{t('home.receipts')}</p>
+                </div>
+              </div>
+            )}
             
             {/* Monthly stats row */}
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5 text-sm">
               <span className="text-dark-400">
-                {t('home.thisMonth')}: <span className="text-white font-medium">€{spendingStats.thisMonth.toFixed(0)}</span>
-              </span>
-              <span className="text-dark-400">
                 {t('home.avgReceipt')}: <span className="text-white font-medium">€{spendingStats.avgReceipt.toFixed(2)}</span>
               </span>
+              {spendingStats.thisMonth > 0 && (
+                <span className="text-dark-400">
+                  {t('home.thisMonth')}: <span className="text-white font-medium">€{spendingStats.thisMonth.toFixed(0)}</span>
+                </span>
+              )}
             </div>
           </div>
         </section>
