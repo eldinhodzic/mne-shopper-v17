@@ -168,11 +168,8 @@ export default function CommunityView({ onProductClick, onClose }) {
   }
 
   function handleProductClick(product) {
-    onProductClick({
-      code: product.code,
-      name: product.name,
-      unit: product.unit
-    })
+    // Pass only the product code, not the full object
+    onProductClick(product.code)
   }
 
   return (

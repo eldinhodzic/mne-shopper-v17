@@ -100,8 +100,13 @@ export default function HomeView({
 
     receipts.forEach(r => {
       r.items?.forEach(item => {
-        const itemName = (item.name || '').toLowerCase()
-        const itemTotal = (item.price || 0) * (item.quantity || 1)
+        // Handle different field names from Montenegro API
+        const itemName = (item.name || item.productName || item.naziv || '').toLowerCase()
+        // Try different price field names
+        const unitPrice = item.price || item.unitPriceAfterVat || item.priceAfterVat || item.cijena || 0
+        const quantity = item.quantity || item.kolicina || 1
+        const itemTotal = unitPrice * quantity
+        
         totalSpent += itemTotal
 
         // Find matching category
