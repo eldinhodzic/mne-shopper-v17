@@ -43,7 +43,20 @@
     "share": "Share",
     "shareStats": "Share your statistics with friends",
     "inflation": "Inflation",
-    "inflationDesc": "Track how prices are rising"
+    "inflationDesc": "Track how prices are rising",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "avgReceipt": "Avg. receipt",
+    "spending": "Spending",
+    "less": "less",
+    "more": "more",
+    "yourInflation": "Your inflation",
+    "monthlyChange": "monthly change",
+    "savings": "Savings",
+    "savedThisMonth": "Saved this month",
+    "cheaperThanAvg": "cheaper than community average",
+    "noData": "Scan more receipts for statistics"
   },
   "scan": {
     "title": "Scan QR code",

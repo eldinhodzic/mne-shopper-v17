@@ -43,7 +43,20 @@
     "share": "Podijeli",
     "shareStats": "Podijelite svoju statistiku sa prijateljima",
     "inflation": "Inflacija",
-    "inflationDesc": "Pratite kako cijene rastu"
+    "inflationDesc": "Pratite kako cijene rastu",
+    "thisWeek": "Ova sedmica",
+    "lastWeek": "Prošla sedmica",
+    "thisMonth": "Ovaj mjesec",
+    "avgReceipt": "Prosj. račun",
+    "spending": "Potrošnja",
+    "less": "manje",
+    "more": "više",
+    "yourInflation": "Vaša inflacija",
+    "monthlyChange": "mjesečna promjena",
+    "savings": "Uštede",
+    "savedThisMonth": "Uštedjeli ovaj mjesec",
+    "cheaperThanAvg": "jeftinije od prosjeka zajednice",
+    "noData": "Skenirajte više računa za statistiku"
   },
   "scan": {
     "title": "Skeniraj QR kod",

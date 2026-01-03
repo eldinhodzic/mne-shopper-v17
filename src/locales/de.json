@@ -43,7 +43,20 @@
     "share": "Teilen",
     "shareStats": "Teilen Sie Ihre Statistik mit Freunden",
     "inflation": "Inflation",
-    "inflationDesc": "Verfolgen Sie den Preisanstieg"
+    "inflationDesc": "Verfolgen Sie den Preisanstieg",
+    "thisWeek": "Diese Woche",
+    "lastWeek": "Letzte Woche",
+    "thisMonth": "Diesen Monat",
+    "avgReceipt": "Durchschn. Beleg",
+    "spending": "Ausgaben",
+    "less": "weniger",
+    "more": "mehr",
+    "yourInflation": "Ihre Inflation",
+    "monthlyChange": "monatliche Änderung",
+    "savings": "Ersparnis",
+    "savedThisMonth": "Diesen Monat gespart",
+    "cheaperThanAvg": "günstiger als Durchschnitt",
+    "noData": "Scannen Sie mehr Belege für Statistiken"
   },
   "scan": {
     "title": "QR-Code scannen",

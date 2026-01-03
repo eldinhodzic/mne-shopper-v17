@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Icons } from './Icons'
 import { supabase } from '../lib/supabase'
 import { SkeletonList } from './Skeleton'
@@ -19,9 +19,157 @@ export default function HomeView({
   const [inflation, setInflation] = useState(null)
   const [loadingDeals, setLoadingDeals] = useState(true)
   const [lastVisit, setLastVisit] = useState(null)
+  const [communityAvgPrices, setCommunityAvgPrices] = useState({})
+
+  // Calculate spending stats from local receipts
+  const spendingStats = useMemo(() => {
+    if (!receipts || receipts.length === 0) return null
+
+    const now = new Date()
+    const startOfThisWeek = new Date(now)
+    startOfThisWeek.setDate(now.getDate() - now.getDay())
+    startOfThisWeek.setHours(0, 0, 0, 0)
+    
+    const startOfLastWeek = new Date(startOfThisWeek)
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7)
+    
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+
+    let thisWeek = 0, lastWeek = 0, thisMonth = 0, lastMonth = 0
+    let thisWeekCount = 0, thisMonthCount = 0
+
+    receipts.forEach(r => {
+      const date = new Date(r.date)
+      const total = r.total || 0
+
+      if (date >= startOfThisWeek) {
+        thisWeek += total
+        thisWeekCount++
+      } else if (date >= startOfLastWeek && date < startOfThisWeek) {
+        lastWeek += total
+      }
+
+      if (date >= startOfThisMonth) {
+        thisMonth += total
+        thisMonthCount++
+      } else if (date >= startOfLastMonth && date <= endOfLastMonth) {
+        lastMonth += total
+      }
+    })
+
+    const weekChange = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0
+    const avgReceipt = thisMonthCount > 0 ? thisMonth / thisMonthCount : 0
+
+    return {
+      thisWeek,
+      lastWeek,
+      thisMonth,
+      weekChange,
+      avgReceipt,
+      hasData: thisWeek > 0 || lastWeek > 0
+    }
+  }, [receipts])
+
+  // Calculate personal inflation from local price history
+  const personalInflation = useMemo(() => {
+    if (!receipts || receipts.length < 2) return null
+
+    const productPrices = {}
+    
+    receipts.forEach(r => {
+      const date = new Date(r.date)
+      r.items?.forEach(item => {
+        if (!productPrices[item.code]) {
+          productPrices[item.code] = []
+        }
+        productPrices[item.code].push({
+          price: item.price,
+          date
+        })
+      })
+    })
+
+    let totalOldPrice = 0, totalNewPrice = 0, productsCompared = 0
+    const changes = []
+
+    Object.entries(productPrices).forEach(([code, prices]) => {
+      if (prices.length < 2) return
+      
+      prices.sort((a, b) => a.date - b.date)
+      const oldest = prices[0]
+      const newest = prices[prices.length - 1]
+      
+      // Only compare if at least 7 days apart
+      const daysDiff = (newest.date - oldest.date) / (1000 * 60 * 60 * 24)
+      if (daysDiff < 7) return
+
+      totalOldPrice += oldest.price
+      totalNewPrice += newest.price
+      productsCompared++
+
+      const change = ((newest.price - oldest.price) / oldest.price) * 100
+      changes.push({ code, change, name: code })
+    })
+
+    if (productsCompared < 2) return null
+
+    const overallChange = ((totalNewPrice - totalOldPrice) / totalOldPrice) * 100
+    
+    // Get top increases and decreases
+    changes.sort((a, b) => b.change - a.change)
+    const topIncreases = changes.filter(c => c.change > 0).slice(0, 3)
+    const topDecreases = changes.filter(c => c.change < 0).slice(0, 3)
+
+    return {
+      change: overallChange,
+      productsCompared,
+      topIncreases,
+      topDecreases
+    }
+  }, [receipts])
+
+  // Calculate savings vs community average
+  const savingsStats = useMemo(() => {
+    if (!receipts || receipts.length === 0 || Object.keys(communityAvgPrices).length === 0) return null
+
+    let totalPaid = 0
+    let totalAvgPrice = 0
+    let itemsCompared = 0
+
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    receipts.forEach(r => {
+      const date = new Date(r.date)
+      if (date < startOfMonth) return
+
+      r.items?.forEach(item => {
+        const avgPrice = communityAvgPrices[item.code]
+        if (avgPrice && item.price < avgPrice) {
+          totalPaid += item.price
+          totalAvgPrice += avgPrice
+          itemsCompared++
+        }
+      })
+    })
+
+    if (itemsCompared < 3) return null
+
+    const saved = totalAvgPrice - totalPaid
+    const savedPercent = (saved / totalAvgPrice) * 100
+
+    return {
+      saved,
+      savedPercent,
+      itemsCompared
+    }
+  }, [receipts, communityAvgPrices])
 
   useEffect(() => {
     loadDealsAndInflation()
+    loadCommunityAverages()
     trackVisit()
   }, [])
 
@@ -31,6 +179,34 @@ export default function HomeView({
       setLastVisit(new Date(last))
     }
     localStorage.setItem('mne_last_visit', new Date().toISOString())
+  }
+
+  async function loadCommunityAverages() {
+    try {
+      const { data } = await supabase
+        .from('latest_prices')
+        .select('product_code, price')
+      
+      if (data) {
+        const avgPrices = {}
+        const pricesByProduct = {}
+        
+        data.forEach(p => {
+          if (!pricesByProduct[p.product_code]) {
+            pricesByProduct[p.product_code] = []
+          }
+          pricesByProduct[p.product_code].push(parseFloat(p.price))
+        })
+        
+        Object.entries(pricesByProduct).forEach(([code, prices]) => {
+          avgPrices[code] = prices.reduce((a, b) => a + b, 0) / prices.length
+        })
+        
+        setCommunityAvgPrices(avgPrices)
+      }
+    } catch (err) {
+      console.error('Error loading community averages:', err)
+    }
   }
 
   async function loadDealsAndInflation() {
@@ -144,15 +320,130 @@ export default function HomeView({
   })
 
   return (
-    <div className="animate-fade-in space-y-5">
+    <div className="animate-fade-in space-y-4">
       
-      {/* Welcome Hero */}
-      <section className="bg-gradient-to-br from-blue-600/15 via-cyan-600/10 to-emerald-600/5 rounded-2xl p-5 border border-cyan-500/20 relative overflow-hidden">
+      {/* Spending Dashboard - NEW P1 Feature */}
+      {spendingStats?.hasData && (
+        <section className="animate-slide-up">
+          <div className="bg-gradient-to-br from-blue-600/10 via-dark-800 to-dark-800 rounded-2xl p-4 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">📊</span>
+              <h2 className="text-sm font-semibold">{t('home.spending')}</h2>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+              {/* This Week */}
+              <div className="bg-dark-900/50 rounded-xl p-3 text-center">
+                <p className="text-lg font-bold text-cyan-400">€{spendingStats.thisWeek.toFixed(0)}</p>
+                <p className="text-[10px] text-dark-400 mt-0.5">{t('home.thisWeek')}</p>
+              </div>
+              
+              {/* Last Week */}
+              <div className="bg-dark-900/50 rounded-xl p-3 text-center">
+                <p className="text-lg font-bold text-dark-300">€{spendingStats.lastWeek.toFixed(0)}</p>
+                <p className="text-[10px] text-dark-400 mt-0.5">{t('home.lastWeek')}</p>
+              </div>
+              
+              {/* Change */}
+              <div className={`rounded-xl p-3 text-center ${
+                spendingStats.weekChange <= 0 
+                  ? 'bg-green-500/10 border border-green-500/20' 
+                  : 'bg-red-500/10 border border-red-500/20'
+              }`}>
+                <p className={`text-lg font-bold ${
+                  spendingStats.weekChange <= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {spendingStats.weekChange <= 0 ? '▼' : '▲'} {Math.abs(spendingStats.weekChange).toFixed(0)}%
+                </p>
+                <p className="text-[10px] text-dark-400 mt-0.5">{spendingStats.weekChange <= 0 ? t('home.less') : t('home.more')}</p>
+              </div>
+            </div>
+            
+            {/* Monthly stats row */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5 text-sm">
+              <span className="text-dark-400">
+                {t('home.thisMonth')}: <span className="text-white font-medium">€{spendingStats.thisMonth.toFixed(0)}</span>
+              </span>
+              <span className="text-dark-400">
+                {t('home.avgReceipt')}: <span className="text-white font-medium">€{spendingStats.avgReceipt.toFixed(2)}</span>
+              </span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Personal Inflation Card - IMPROVED P1 Feature */}
+      {personalInflation && (
+        <section className="animate-slide-up" style={{ animationDelay: '50ms' }}>
+          <div className={`rounded-2xl p-4 border ${
+            personalInflation.change > 0 
+              ? 'bg-gradient-to-br from-red-500/10 to-orange-500/5 border-red-500/20' 
+              : 'bg-gradient-to-br from-green-500/10 to-cyan-500/5 border-green-500/20'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">{personalInflation.change > 0 ? '📈' : '📉'}</span>
+                  <h2 className="text-sm font-semibold">{t('home.yourInflation')}</h2>
+                </div>
+                <p className="text-xs text-dark-400">{t('home.monthlyChange')}</p>
+              </div>
+              
+              <div className={`text-right px-3 py-2 rounded-xl ${
+                personalInflation.change > 0 ? 'bg-red-500/20' : 'bg-green-500/20'
+              }`}>
+                <p className={`text-2xl font-bold ${
+                  personalInflation.change > 0 ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {personalInflation.change > 0 ? '+' : ''}{personalInflation.change.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            
+            {/* Top changes */}
+            {(personalInflation.topIncreases.length > 0 || personalInflation.topDecreases.length > 0) && (
+              <div className="flex gap-4 mt-3 pt-3 border-t border-white/5 text-xs">
+                {personalInflation.topIncreases.slice(0, 2).map((item, i) => (
+                  <span key={i} className="text-red-400">🔴 +{item.change.toFixed(0)}%</span>
+                ))}
+                {personalInflation.topDecreases.slice(0, 2).map((item, i) => (
+                  <span key={i} className="text-green-400">🟢 {item.change.toFixed(0)}%</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Savings Card - NEW P1 Feature */}
+      {savingsStats && (
+        <section className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-2xl p-4 border border-green-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🏆</span>
+                  <h2 className="text-sm font-semibold">{t('home.savings')}</h2>
+                </div>
+                <p className="text-xs text-dark-400">{t('home.savedThisMonth')}</p>
+              </div>
+              
+              <div className="text-right">
+                <p className="text-2xl font-bold text-green-400">€{savingsStats.saved.toFixed(2)}</p>
+                <p className="text-xs text-green-400/70">{savingsStats.savedPercent.toFixed(0)}% {t('home.cheaperThanAvg')}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Welcome Hero - Simplified */}
+      <section className="bg-gradient-to-br from-blue-600/15 via-cyan-600/10 to-emerald-600/5 rounded-2xl p-4 border border-cyan-500/20 relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative flex items-start justify-between">
           <div>
-            <h1 className="text-xl text-heading mb-1">{t('home.welcome')} 👋</h1>
+            <h1 className="text-lg font-bold mb-1">{t('home.welcome')} 👋</h1>
             <p className="text-sm text-dark-400">
               {receipts.length === 0 
                 ? t('home.scanFirst')
@@ -160,51 +451,29 @@ export default function HomeView({
               }
             </p>
           </div>
-          {communityStats && (
-            <div className="bg-dark-900/60 rounded-xl px-3 py-2 text-right backdrop-blur-sm border border-white/5">
-              <p className="text-xl text-price text-cyan-400">
-                {communityStats.total_stores || 0}
-              </p>
-              <p className="text-caption text-dark-500">{t('common.stores')}</p>
+          {receipts.length > 0 && (
+            <div className="flex gap-2">
+              <div className="bg-dark-900/60 rounded-lg px-2.5 py-1.5 text-center backdrop-blur-sm border border-white/5">
+                <p className="text-base font-bold text-cyan-400">{receipts.length}</p>
+                <p className="text-[9px] text-dark-500">{t('home.receipts')}</p>
+              </div>
+              <div className="bg-dark-900/60 rounded-lg px-2.5 py-1.5 text-center backdrop-blur-sm border border-white/5">
+                <p className="text-base font-bold text-cyan-400">
+                  {new Set(receipts.flatMap(r => r.items?.map(i => i.code) || [])).size}
+                </p>
+                <p className="text-[9px] text-dark-500">{t('home.products')}</p>
+              </div>
             </div>
           )}
         </div>
-        
-        {/* Quick Stats */}
-        {receipts.length > 0 && (
-          <div className="flex gap-3 mt-4">
-            <QuickStat 
-              icon="🧾" 
-              value={receipts.length} 
-              label={t('home.receipts')} 
-            />
-            <QuickStat 
-              icon="📦" 
-              value={new Set(receipts.flatMap(r => r.items?.map(i => i.code) || [])).size} 
-              label={t('home.products')} 
-            />
-            <QuickStat 
-              icon="💰" 
-              value={`€${receipts.reduce((s, r) => s + (r.total || 0), 0).toFixed(0)}`} 
-              label={t('home.total')} 
-            />
-          </div>
-        )}
       </section>
-
-      {/* Personal Inflation Card */}
-      {inflation && (
-        <section className="animate-slide-up">
-          <InflationCard inflation={inflation} t={t} />
-        </section>
-      )}
 
       {/* Hot Deals Section */}
       {deals.length > 0 && (
-        <section className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <section className="animate-slide-up" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🔥</span>
+              <span className="text-base">🔥</span>
               <h2 className="text-sm font-semibold">{t('home.deals')}</h2>
               {hasNewDeals && (
                 <span className="animate-pop-in bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
@@ -216,7 +485,7 @@ export default function HomeView({
           </div>
           
           <div className="space-y-2 stagger-children">
-            {deals.map((deal) => (
+            {deals.slice(0, 3).map((deal) => (
               <DealCard key={deal.code} deal={deal} />
             ))}
           </div>
@@ -224,13 +493,13 @@ export default function HomeView({
       )}
 
       {/* Loading State for Deals - Skeleton */}
-      {loadingDeals && deals.length === 0 && (
+      {loadingDeals && deals.length === 0 && receipts.length === 0 && (
         <section className="animate-slide-up">
           <div className="flex items-center gap-2 mb-3">
             <div className="skeleton w-6 h-6 rounded" />
             <div className="skeleton h-4 w-28 rounded" />
           </div>
-          <SkeletonList count={3} type="deal" />
+          <SkeletonList count={2} type="deal" />
         </section>
       )}
 
